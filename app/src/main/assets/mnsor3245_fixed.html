@@ -690,9 +690,36 @@ $("bkAction").addEventListener("click", () => {
 $("bkClose").addEventListener("click", closeBackup);
 $("bkModal").addEventListener("click", e => { if (e.target.id === "bkModal") closeBackup(); });
 
-$("backupBtn").addEventListener("click", () => openBackup("backup"));
+$("backupBtn").addEventListener("click", () => {
+  if (window.AndroidApp) { AndroidApp.exportBackup(JSON.stringify(state)); return; }
+  openBackup("backup");
+});
 
-$("restoreBtn").addEventListener("click", () => openBackup("restore"));
+$("restoreBtn").addEventListener("click", () => {
+  if (window.AndroidApp) { AndroidApp.importBackup(); return; }
+  openBackup("restore");
+});
+
+function applyBackup(text) {
+  const data = JSON.parse(text);
+  if (!data.students || !Array.isArray(data.students)) throw new Error("الملف لا يحتوي على بيانات السجل");
+  state = data;
+  state.activeKey = undefined;
+  initClass();
+  ["date","grade","section","month"].forEach(id => { $(id).value = state[id] || ""; });
+  buildRows();
+  updateStats();
+  save();
+}
+
+window.onBackupImported = function (text) {
+  try {
+    applyBackup(text);
+    alert("تمت الاستعادة بنجاح");
+  } catch (err) {
+    alert("تعذّرت الاستعادة: " + err.message);
+  }
+};
 $("restoreFile").addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
